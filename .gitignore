@@ -1,0 +1,11 @@
+# Node
+node_modules/
+.env
+# Build
+dist/
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+# Screenshots
+screenshots/
