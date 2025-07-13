@@ -1,71 +1,80 @@
-# 🔑 Sherpa Automation
+# 🗝️ Sherpa Automation - El Ritual de Entrada
 
-API de automatización para la prueba técnica de Sherpa usando Node.js + Express + TypeScript.
+Automatización del **PASO 1: EL RITUAL DE ENTRADA** 
+## ✅ **Funcionalidad Implementada**
 
-## 🚀 Uso
+- **Login automático** en la página de Sherpa
+- **Navegador persistente** para próximos pasos
+- **API REST** para controlar la automatización
+- **Logs temáticos** con narrativa del monje
+
+## 🛠️ **Tecnologías**
+
+- Node.js + Express + TypeScript
+- Playwright para automatización
+
+## 📦 **Instalación Rápida**
 
 ```bash
-# Instalar dependencias
+git clone <tu-repositorio>
+cd sherpa
 npm install
-
-# Instalar Playwright
-npm run install-playwright
-
-# Desarrollo
-npm run dev
-
-# Producción
-npm run build
-npm start
+npx playwright install
 ```
 
-## 📁 Estructura del Proyecto
+**Configurar `.env`:**
+```env
+SHERPA_EMAIL=monje@sherpa.local
+SHERPA_PASSWORD=cript@123
+PORT=3000
+```
+
+## 🚀 **Uso**
+
+```bash
+npm run dev
+curl -X POST http://localhost:3000/api/automation/start
+```
+
+## 📡 **API Endpoints**
+
+```bash
+POST /api/automation/start          # Iniciar automatización
+GET  /api/automation/status         # Estado del proceso
+GET  /api/automation/browser-status # Estado del navegador
+GET  /health                        # Health check
+```
+
+## 🗝️ **El Desafío - PASO 1**
+
+- **URL:** https://pruebatecnica-sherpa-production.up.railway.app/
+- **Credenciales:** `monje@sherpa.local` / `cript@123`
+
+### ✅ **Funcionalidades:**
+- Navegación automática a la página de login
+- Llenado automático de credenciales
+- Click automático en botón de login
+- Verificación de login exitoso
+- Navegador mantenido abierto para próximos pasos
+
+## 🏗️ **Estructura**
 
 ```
 src/
-├── routes/
-│   └── automation.ts         # Rutas de la API
-├── controllers/
-│   └── automation.ts         # Controladores
-├── services/
-│   ├── automation.ts         # Servicio principal
-│   └── playwright/
-│       └── playwrightService.ts  # Servicio de Playwright
-├── utils/
-│   ├── findElement.ts        # Buscar elementos
-│   ├── navigateToPage.ts     # Navegación
-│   ├── doLogin.ts            # Login
-│   ├── screenshot.ts         # Screenshots
-│   └── selectors.ts          # Selectores
-├── types/
-│   ├── index.ts              # Tipos principales
-│   ├── automation.ts         # Tipos de automatización
-│   └── login.ts              # Tipos de login
-├── config/
-│   ├── config.ts             # Configuración principal
-│   └── constants.ts          # Constantes
-├── middleware/               # Middleware de Express
-└── index.ts                  # Punto de entrada
+├── utils/doLogin.ts           # Lógica de login
+├── services/playwright/       # Automatización
+├── controllers/automation.ts  # API
+└── routes/automation.ts       # Endpoints
 ```
 
-## 🔧 Características
+## 🚀 **Próximos Pasos**
 
-- ✅ **Node.js + Express** - API REST
-- ✅ **TypeScript** - Type safety
-- ✅ **Playwright** - Automatización de navegador
-- ✅ **Arquitectura modular** - Separación de responsabilidades
-- ✅ **API REST** - Endpoints para controlar automatización
+El navegador permanece abierto para continuar con:
+- **PASO 2:** Descarga de manuscritos
+- **PASO 3:** Extracción de códigos de PDFs
+- **PASO 4:** Resolución de desafíos de API
+- **PASO 5:** Completar la colección
 
-## 🎯 Endpoints
+---
 
-- `POST /api/automation/start` - Iniciar automatización
-- `GET /api/automation/status` - Obtener estado
-- `POST /api/automation/stop` - Detener automatización
-- `GET /api/automation/screenshots` - Obtener screenshots
-
-## 🔑 Credenciales
-
-- **Email**: `monje@sherpa.local`
-- **Password**: `cript@123`
-
-¡Listo para automatizar! 🎉 
+**🗝️ El monje ha entrado a la cripta y está listo para continuar su aventura...** 
