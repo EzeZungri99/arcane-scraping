@@ -126,7 +126,7 @@ export class PlaywrightService {
     try {
       console.log(`🔍 Buscando siglo: ${century}`);
       
-      const centuryBlock = await this.findCenturyBlockByIndex(century, 1); // Assuming index 1 for filtering
+      const centuryBlock = await this.findCenturyBlockByIndex(century, 1); 
       
       if (centuryBlock) {
         console.log(`✅ Siglo ${century} encontrado y seleccionado`);
@@ -536,6 +536,407 @@ export class PlaywrightService {
     };
     
     return centuryMap[century] || null;
+  }
+
+  async navigateToPage(pageNumber: number): Promise<any> {
+    if (!this.page || !this.isLoggedIn) {
+      throw new Error('Navegador no inicializado o no logueado');
+    }
+
+    try {
+      console.log(`📄 Navegando a la página ${pageNumber}...`);
+      
+      const pageButton = await this.page.locator(`button:has-text("${pageNumber}")`).first();
+      
+      if (await pageButton.isVisible()) {
+        await pageButton.click();
+        console.log(`✅ Clic en botón de página ${pageNumber}`);
+        
+        await this.page.waitForTimeout(3000);
+        
+        return {
+          success: true,
+          message: `Navegación a página ${pageNumber} exitosa`
+        };
+      } else {
+        throw new Error(`No se encontró botón de página ${pageNumber}`);
+      }
+    } catch (error) {
+      console.error('❌ Error al navegar a la página:', error);
+      throw error;
+    }
+  }
+
+  async extractBookNameFromModal(): Promise<any> {
+    if (!this.page || !this.isLoggedIn) {
+      throw new Error('Navegador no inicializado o no logueado');
+    }
+
+    try {
+      console.log('📖 Extrayendo nombre del libro del modal...');
+      
+      const modal = await this.page.locator('[role="dialog"], .modal, .popup').first();
+      const bookNameElement = await modal.locator('h3').first();
+      
+      if (await bookNameElement.isVisible()) {
+        const rawBookName = await bookNameElement.textContent();
+        console.log(`📖 Nombre del libro extraído (raw): ${rawBookName}`);
+        
+        let cleanBookName = rawBookName?.trim();
+        
+        if (cleanBookName && cleanBookName.includes('Necronomicon')) {
+          cleanBookName = 'Necronomicon';
+          console.log(`✅ Nombre del libro limpiado: ${cleanBookName}`);
+        }
+        
+        console.log(`✅ Nombre del libro final: ${cleanBookName}`);
+        
+        return {
+          success: true,
+          message: `Nombre del libro extraído: ${cleanBookName}`,
+          bookName: cleanBookName
+        };
+      } else {
+        throw new Error('No se encontró elemento h3 con el nombre del libro en el modal');
+      }
+    } catch (error) {
+      console.error('❌ Error al extraer nombre del libro:', error);
+      throw error;
+    }
+  }
+
+  async makeExternalAPIRequest(bookName: string, code: string): Promise<any> {
+    try {
+      console.log(`🌐 Haciendo petición a API externa...`);
+      console.log(`📖 Libro: ${bookName}`);
+      console.log(`🔑 Código: ${code}`);
+      
+      const url = `https://backend-production-9d875.up.railway.app/api/cipher/challenge?bookTitle=${encodeURIComponent(bookName)}&unlockCode=${encodeURIComponent(code)}`;
+      console.log(`🔗 URL: ${url}`);
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      console.log(`📡 Respuesta de API:`, data);
+      
+      if (response.ok) {
+        return {
+          success: true,
+          message: 'Petición a API externa exitosa',
+          data: data
+        };
+      } else {
+        throw new Error(`Error en petición API: ${response.status} ${response.statusText}`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error en petición a API externa:', error);
+      throw error;
+    }
+  }
+
+  async solveAlgorithmicChallenge(apiResponse: any): Promise<any> {
+    try {
+      console.log('🧮 Resolviendo desafío algorítmico...');
+      
+      const { vault, targets, hint } = apiResponse.challenge;
+      
+      console.log(`🔍 Vault: ${vault.join(', ')}`);
+      console.log(`🎯 Targets: ${targets.join(', ')}`);
+      console.log(`💡 Hint: ${hint}`);
+      
+      const binarySearch = (arr: any[], target: number): any => {
+        let left = 0;
+        let right = arr.length - 1;
+        
+        while (left <= right) {
+          const mid = Math.floor((left + right) / 2);
+          
+          if (mid === target) {
+            return arr[mid];
+          } else if (mid < target) {
+            left = mid + 1;
+          } else {
+            right = mid - 1;
+          }
+        }
+        
+        return null; 
+      };
+      
+      const password = [];
+      
+      for (const target of targets) {
+        console.log(`🔍 Buscando target ${target} en el vault...`);
+        const character = binarySearch(vault, target);
+        
+        if (character) {
+          password.push(character);
+          console.log(`✅ Encontrado: ${character} en posición ${target}`);
+        } else {
+          console.log(`❌ No se encontró caracter en posición ${target}`);
+        }
+      }
+      
+      const finalPassword = password.join('');
+      console.log(`🔐 Contraseña construida: ${finalPassword}`);
+      
+      if (finalPassword.length > 0) {
+        return {
+          success: true,
+          message: `Desafío algorítmico resuelto: ${finalPassword}`,
+          password: finalPassword
+        };
+      } else {
+        throw new Error('No se pudo construir la contraseña');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error resolviendo desafío algorítmico:', error);
+      throw error;
+    }
+  }
+
+  async closeModal(): Promise<any> {
+    if (!this.page || !this.isLoggedIn) {
+      throw new Error('Navegador no inicializado o no logueado');
+    }
+
+    try {
+      console.log('❌ Cerrando modal...');
+      
+      const closeSelectors = [
+        'button[aria-label="Cerrar modal"]',
+        'button[aria-label="Close modal"]',
+        'button:has-text("Cerrar")',
+        'button:has-text("Close")',
+        '[data-testid="close-modal"]',
+        '.modal button:last-child'
+      ];
+      
+      for (const selector of closeSelectors) {
+        try {
+          const closeButton = await this.page.locator(selector).first();
+          if (await closeButton.isVisible()) {
+            await closeButton.click();
+            console.log(`✅ Modal cerrado con selector: ${selector}`);
+            await this.page.waitForTimeout(1000);
+            return {
+              success: true,
+              message: 'Modal cerrado exitosamente'
+            };
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      
+      try {
+        await this.page.keyboard.press('Escape');
+        console.log('✅ Modal cerrado con Escape');
+        return {
+          success: true,
+          message: 'Modal cerrado con Escape'
+        };
+      } catch (e) {
+        console.log('⚠️ No se pudo cerrar el modal');
+        return {
+          success: false,
+          message: 'No se pudo cerrar el modal'
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error al cerrar modal:', error);
+      throw error;
+    }
+  }
+
+  async processSpecialCentury(century: string): Promise<any> {
+    if (!this.page || !this.isLoggedIn) {
+      throw new Error('Navegador no inicializado o no logueado');
+    }
+
+    try {
+      console.log(`🔮 Procesando siglo especial: ${century}`);
+      
+      const previousCentury = this.getPreviousCentury(century);
+      if (!previousCentury) {
+        throw new Error(`No se encontró siglo anterior para ${century}`);
+      }
+      
+      console.log(`🔍 Extrayendo código del siglo anterior: ${previousCentury}`);
+      const extractResult = await this.extractCodeFromPDF(previousCentury);
+      
+      if (!extractResult.success || !extractResult.code) {
+        throw new Error(`No se pudo extraer código del siglo ${previousCentury}`);
+      }
+      
+      const code = extractResult.code;
+      console.log(`✅ Código extraído del siglo ${previousCentury}: ${code}`);
+      
+      if (century === 'XVII' || century === 'XVIII') {
+        console.log('📄 Navegando a la página 2 para siglos especiales...');
+        await this.navigateToPage(2);
+        await this.page!.waitForTimeout(2000);
+      }
+      
+      let centuryIndex = 1;
+      if (century === 'XVII') {
+        centuryIndex = 2; 
+        console.log('🎯 Seleccionando el segundo elemento del siglo XVII...');
+      }
+      
+      console.log(`🔍 Filtrando por siglo ${century} (índice ${centuryIndex})...`);
+      const centuryBlock = await this.findCenturyBlockByIndex(century, centuryIndex);
+      if (!centuryBlock) {
+        throw new Error(`No se encontró el bloque #${centuryIndex} del siglo ${century}`);
+      }
+      
+      console.log('📖 Extrayendo nombre del libro del bloque...');
+      const bookNameElement = await centuryBlock.locator('h3').first();
+      
+      if (await bookNameElement.isVisible()) {
+        const rawBookName = await bookNameElement.textContent();
+        console.log(`📖 Nombre del libro extraído (raw): ${rawBookName}`);
+        
+        let cleanBookName = rawBookName?.trim();
+        
+        if (cleanBookName && cleanBookName.includes('Necronomicon')) {
+          cleanBookName = 'Necronomicon';
+          console.log(`✅ Nombre del libro limpiado: ${cleanBookName}`);
+        }
+        
+        console.log(`✅ Nombre del libro final: ${cleanBookName}`);
+        const bookName = cleanBookName;
+        
+        console.log('📖 Haciendo clic en "Ver Documentación"...');
+        
+        let documentationButton = null;
+        
+        try {
+          documentationButton = await centuryBlock.locator('button:has-text("Ver Documentación")').first();
+          if (await documentationButton.isVisible()) {
+            console.log('✅ Encontrado botón con selector directo');
+          } else {
+            documentationButton = null;
+          }
+        } catch (e) {
+          console.log('🔍 Selector directo no funcionó, buscando alternativas...');
+        }
+        
+        if (!documentationButton) {
+          console.log('🔍 Buscando en todos los botones del bloque...');
+          const allButtons = await centuryBlock.locator('button').all();
+          
+          for (const button of allButtons) {
+            try {
+              const text = (await button.textContent())?.toLowerCase().trim();
+              console.log(`🔍 Botón con texto: "${text}"`);
+              
+              if (text && (text.includes('ver documentación') || text.includes('documentación'))) {
+                documentationButton = button;
+                console.log(`✅ Encontrado botón con texto: "${text}"`);
+                break;
+              }
+            } catch (e) {
+              continue;
+            }
+          }
+        }
+        
+        if (!documentationButton) {
+          console.log('🔍 Buscando en enlaces del bloque...');
+          const allLinks = await centuryBlock.locator('a').all();
+          
+          for (const link of allLinks) {
+            try {
+              const text = (await link.textContent())?.toLowerCase().trim();
+              console.log(`🔍 Enlace con texto: "${text}"`);
+              
+              if (text && (text.includes('ver documentación') || text.includes('documentación'))) {
+                documentationButton = link;
+                console.log(`✅ Encontrado enlace con texto: "${text}"`);
+                break;
+              }
+            } catch (e) {
+              continue;
+            }
+          }
+        }
+        
+        if (documentationButton && await documentationButton.isVisible()) {
+          await documentationButton.click();
+          await this.page!.waitForTimeout(2000);
+          console.log('✅ Modal abierto');
+        } else {
+          throw new Error('No se encontró el botón "Ver Documentación"');
+        }
+        
+        console.log('🌐 Haciendo petición a API externa...');
+        const apiResult = await this.makeExternalAPIRequest(bookName, code);
+        if (!apiResult.success) {
+          throw new Error('Error en petición a API externa');
+        }
+        
+        console.log('🧮 Resolviendo desafío algorítmico...');
+        const challengeResult = await this.solveAlgorithmicChallenge(apiResult.data);
+        if (!challengeResult.success) {
+          throw new Error('Error resolviendo desafío algorítmico');
+        }
+        
+        const password = challengeResult.password;
+        console.log(`✅ Contraseña obtenida: ${password}`);
+        
+        console.log('⏳ Esperando 2 segundos después de resolver el desafío...');
+        await this.page!.waitForTimeout(2000);
+        
+        console.log('❌ Cerrando modal...');
+        const closeButton = await this.page.locator('button[aria-label="Cerrar modal"]').first();
+        if (await closeButton.isVisible()) {
+          await closeButton.click();
+          console.log('✅ Modal cerrado con botón aria-label="Cerrar modal"');
+        } else {
+          console.log('⚠️ No se encontró botón con aria-label="Cerrar modal", intentando otros métodos...');
+          await this.closeModal();
+        }
+        
+        console.log('⏳ Esperando 2 segundos después de cerrar el modal...');
+        await this.page!.waitForTimeout(2000);
+        
+        console.log(`🔓 Desbloqueando siglo ${century} con contraseña: ${password}`);
+        const unlockResult = await this.unlockCentury(century, password, centuryIndex);
+        if (!unlockResult.success) {
+          throw new Error('Error al desbloquear siglo');
+        }
+        
+        console.log('❌ Cerrando nuevo modal después del desbloqueo...');
+        await this.page!.waitForTimeout(1000); // Esperar a que aparezca el modal
+        await this.closeModal();
+        
+        console.log(`📥 Descargando PDF del siglo ${century}...`);
+        const downloadResult = await this.downloadPDF(century, centuryIndex);
+        if (!downloadResult.success) {
+          throw new Error('Error al descargar PDF del siglo');
+        }
+        
+        return {
+          success: true,
+          message: `Siglo ${century} procesado exitosamente`,
+          bookName: bookName,
+          password: password,
+          previousCentury: previousCentury,
+          extractedCode: code,
+          downloadResult: downloadResult
+        };
+        
+      } else {
+        throw new Error('No se encontró elemento h3 con el nombre del libro en el bloque del siglo');
+      }
+      
+    } catch (error) {
+      console.error(`❌ Error procesando siglo especial ${century}:`, error);
+      throw error;
+    }
   }
 
 } 
