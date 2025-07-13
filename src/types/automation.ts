@@ -1,4 +1,3 @@
-// Tipos para automatización
 export interface AutomationStatus {
   isRunning: boolean;
   currentStep: string;
