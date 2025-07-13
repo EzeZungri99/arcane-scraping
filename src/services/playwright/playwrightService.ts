@@ -97,28 +97,37 @@ export class PlaywrightService {
   private async findCenturyBlockByIndex(century: string, index: number): Promise<any> {
     if (!this.page) throw new Error('Página no inicializada');
     
-    const blocks = await this.page.locator('*:has(span.text-sm)').all();
-    let count = 0;
+    console.log(`🔍 Buscando "Siglo ${century}" en posición visual ${index}...`);
     
-    for (const block of blocks) {
+    // Buscar específicamente en los divs que contienen los siglos
+    const blocks = await this.page.locator('div.space-y-3 > div').all();
+    console.log(`📄 Total de bloques encontrados: ${blocks.length}`);
+    
+    for (let i = 0; i < blocks.length; i++) {
       try {
-        const span = await block.locator('span.text-sm').first();
+        const span = await blocks[i].locator('span.text-sm').first();
         const text = await span.textContent();
+        console.log(`🔍 Bloque ${i + 1}: "${text}"`);
+        
         if (text && text.trim() === `Siglo ${century}`) {
-          count++;
-          if (count === index) {
-            console.log(`✅ Encontrado el bloque #${index} del siglo ${century}`);
-            return block;
+          console.log(`✅ Encontrado "Siglo ${century}" en posición ${i + 1}`);
+          
+          // Si estamos buscando la posición específica (index)
+          if (i + 1 === index) {
+            console.log(`✅ Seleccionando bloque en posición ${index} que contiene "Siglo ${century}"`);
+            return blocks[i];
           }
         }
       } catch (e) {
         continue;
       }
     }
+    
+    console.log(`❌ No se encontró "Siglo ${century}" en la posición ${index}`);
     return null;
   }
 
-  async filterByCentury(century: string): Promise<any> {
+  async filterByCentury(century: string, index: number = 1): Promise<any> {
     if (!this.page || !this.isLoggedIn) {
       throw new Error('Navegador no inicializado o no logueado');
     }
@@ -126,7 +135,7 @@ export class PlaywrightService {
     try {
       console.log(`🔍 Buscando siglo: ${century}`);
       
-      const centuryBlock = await this.findCenturyBlockByIndex(century, 1); 
+      const centuryBlock = await this.findCenturyBlockByIndex(century, index); 
       
       if (centuryBlock) {
         console.log(`✅ Siglo ${century} encontrado y seleccionado`);
@@ -204,6 +213,9 @@ export class PlaywrightService {
       }
       
       if (downloadButton) {
+        console.log('⏳ Esperando 2 segundos antes de hacer clic en descarga...');
+        await this.page!.waitForTimeout(2000);
+        
         const downloadPromise = this.page.waitForEvent('download');
         await downloadButton.click();
         
@@ -416,6 +428,16 @@ export class PlaywrightService {
     try {
       console.log(`📜 Procesando siglo específico: ${century}`);
       
+      // Mapeo de índices para los primeros 3 tomos
+      const centuryIndexMap: { [key: string]: number } = { 
+        'XIV': 1, 
+        'XV': 3, 
+        'XVI': 2
+      };
+      
+      const index = centuryIndexMap[century] || 1;
+      console.log(`🎯 Usando índice ${index} para siglo ${century}`);
+      
       const previousCentury = this.getPreviousCentury(century);
       if (previousCentury) {
         console.log(`🔍 Extrayendo código del siglo anterior: ${previousCentury}`);
@@ -423,15 +445,15 @@ export class PlaywrightService {
         
         if (extractResult.success && extractResult.code) {
           console.log(`🔓 Desbloqueando siglo ${century} con código: ${extractResult.code}`);
-          await this.unlockCentury(previousCentury, extractResult.code);
+          await this.unlockCentury(century, extractResult.code, index);
         }
       }
       
-      console.log(`🔍 Filtrando por siglo: ${century}`);
-      await this.filterByCentury(century);
+      console.log(`🔍 Filtrando por siglo: ${century} (índice ${index})`);
+      await this.filterByCentury(century, index);
       
-      console.log(`📥 Descargando PDF del siglo: ${century}`);
-      await this.downloadPDF(century);
+      console.log(`📥 Descargando PDF del siglo: ${century} (índice ${index})`);
+      await this.downloadPDF(century, index);
       
       return {
         success: true,
@@ -445,7 +467,7 @@ export class PlaywrightService {
     }
   }
 
-  async runCompleteFlow(): Promise<any> {
+  async page1CompleteFlow(): Promise<any> {
     try {
       console.log('🔄 Iniciando flujo completo para los primeros 3 tomos...');
       
@@ -455,7 +477,11 @@ export class PlaywrightService {
         console.log('✅ Login completado, continuando con el flujo...');
       }
       
-      const centuryIndexMap: { [key: string]: number } = { 'XIV': 1, 'XV': 2, 'XVI': 3 };
+      const centuryIndexMap: { [key: string]: number } = { 
+        'XIV': 1, 
+        'XV': 3, 
+        'XVI': 2
+      };
       const centuries = ['XIV', 'XV', 'XVI'];
       const results = [];
       
@@ -465,7 +491,7 @@ export class PlaywrightService {
         
         if (century === 'XIV') {
           console.log('🔍 Filtrando por siglo XIV...');
-          await this.filterByCentury(century);
+          await this.filterByCentury(century, index);
           
           console.log('📥 Descargando PDF del siglo XIV...');
           await this.downloadPDF(century, index);
@@ -488,8 +514,9 @@ export class PlaywrightService {
               console.log(`🔓 Desbloqueando siglo ${century} con código: ${extractResult.code}`);
               await this.unlockCentury(century, extractResult.code, index);
               
-              console.log(`🔍 Filtrando por siglo: ${century}`);
-              await this.filterByCentury(century);
+              // Esperar a que aparezca el botón de descarga después del desbloqueo
+              console.log('⏳ Esperando a que aparezca el botón de descarga...');
+              await this.page!.waitForTimeout(2000);
               
               console.log(`📥 Descargando PDF del siglo: ${century}`);
               await this.downloadPDF(century, index);
@@ -544,7 +571,6 @@ export class PlaywrightService {
     }
 
     try {
-      console.log(`📄 Navegando a la página ${pageNumber}...`);
       
       const pageButton = await this.page.locator(`button:has-text("${pageNumber}")`).first();
       
@@ -774,16 +800,18 @@ export class PlaywrightService {
       const code = extractResult.code;
       console.log(`✅ Código extraído del siglo ${previousCentury}: ${code}`);
       
-      if (century === 'XVII' || century === 'XVIII') {
-        console.log('📄 Navegando a la página 2 para siglos especiales...');
+      if (century === 'XVII') {
         await this.navigateToPage(2);
         await this.page!.waitForTimeout(2000);
       }
       
       let centuryIndex = 1;
       if (century === 'XVII') {
-        centuryIndex = 2; 
-        console.log('🎯 Seleccionando el segundo elemento del siglo XVII...');
+        centuryIndex = 2; // En la página 2, XVII está en posición 2
+        console.log('🎯 Seleccionando el segundo elemento (Siglo XVII)...');
+      } else if (century === 'XVIII') {
+        centuryIndex = 1; // En la página 2, XVIII está en posición 1
+        console.log('🎯 Seleccionando el primer elemento (Siglo XVIII)...');
       }
       
       console.log(`🔍 Filtrando por siglo ${century} (índice ${centuryIndex})...`);
@@ -935,6 +963,76 @@ export class PlaywrightService {
       
     } catch (error) {
       console.error(`❌ Error procesando siglo especial ${century}:`, error);
+      throw error;
+    }
+  }
+
+  async page2CompleteFlow(): Promise<any> {
+    try {
+      console.log('🔄 Iniciando flujo completo para los últimos 2 tomos...');
+      
+      if (!this.isLoggedIn || !this.browser || !this.page) {
+        console.log('🔐 Iniciando proceso de login...');
+        await this.runAutomation();
+        console.log('✅ Login completado, continuando con el flujo...');
+        await this.page!.waitForTimeout(3000);
+      }
+      
+      const results = [];
+      
+      const centuries = ['XVII', 'XVIII'];
+      
+      for (const century of centuries) {
+        console.log(`\n📜 Procesando siglo especial: ${century}`);
+        
+        console.log('📄 Navegando a la página 2 para siglos especiales...');
+        await this.navigateToPage(2);
+        await this.page!.waitForTimeout(3000);
+        
+        const result = await this.processSpecialCentury(century);
+        results.push({ century, result });
+        
+        console.log(`⏳ Esperando 3 segundos después de procesar siglo especial ${century}...`);
+        await this.page!.waitForTimeout(3000);
+      }
+      
+      console.log('\n✅ Flujo completo finalizado para los últimos 2 tomos');
+      console.log('📊 Resumen de resultados:');
+      results.forEach(({ century, result }) => {
+        console.log(`- Siglo ${century}: ${result.success ? '✅ Exitoso' : '❌ Fallido'}`);
+      });
+      
+      return {
+        success: true,
+        message: 'Flujo completo ejecutado exitosamente para los últimos 2 tomos',
+        results: results
+      };
+      
+    } catch (error) {
+      console.error('❌ Error en flujo completo:', error);
+      throw error;
+    }
+  }
+
+  async runCompleteFlow(): Promise<any> {
+    try {
+      console.log('🔄 Iniciando flujo completo para todos los 5 tomos...');
+      
+      const page1Result = await this.page1CompleteFlow();
+      console.log('✅ Página 1 completada, iniciando página 2...');
+      
+      const page2Result = await this.page2CompleteFlow();
+      console.log('✅ Página 2 completada');
+      
+      return {
+        success: true,
+        message: 'Flujo completo ejecutado exitosamente para todos los 5 tomos',
+        page1Result: page1Result,
+        page2Result: page2Result
+      };
+      
+    } catch (error) {
+      console.error('❌ Error en flujo completo:', error);
       throw error;
     }
   }
