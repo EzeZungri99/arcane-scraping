@@ -12,6 +12,8 @@ router.post('/download/:century', (req, res) => automationController.downloadPDF
 router.post('/unlock', (req, res) => automationController.unlockCentury(req, res));
 router.post('/extract/:century', (req, res) => automationController.extractCodeFromPDF(req, res));
 router.post('/process-century/:century', (req, res) => automationController.processSpecificCentury(req, res));
+router.post('/process-special-century', (req, res) => automationController.processSpecialCentury(req, res));
+router.post('/navigate/:pageNumber', (req, res) => automationController.navigateToPage(req, res));
 router.post('/start', (req, res) => automationController.runCompleteFlow(req, res));
 
 export { router as automationRoutes }; 
