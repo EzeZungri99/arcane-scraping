@@ -20,7 +20,6 @@ export class AutomationService {
       this.status.currentStep = 'Iniciando automatización...';
       this.status.error = null;
       
-      console.log('🚀 Iniciando automatización de Sherpa...');
       console.log('🗝️ El monje se prepara para el ritual de entrada...');
       
       const result = await this.playwrightService.runAutomation();
@@ -61,7 +60,52 @@ export class AutomationService {
     }
   }
 
-  async getScreenshots(): Promise<string[]> {
-    return [];
+  async processSpecificCentury(century: string): Promise<any> {
+    try {
+      this.status.isRunning = true;
+      this.status.currentStep = `Procesando siglo ${century}...`;
+      this.status.error = null;
+      
+      console.log(`📜 El monje se prepara para procesar el siglo ${century}...`);
+      
+      const result = await this.playwrightService.processSpecificCentury(century);
+      
+      this.status.isRunning = false;
+      this.status.currentStep = `Siglo ${century} procesado`;
+      
+      return result;
+    } catch (error) {
+      this.status.isRunning = false;
+      this.status.currentStep = `Error procesando siglo ${century}`;
+      this.status.error = error instanceof Error ? error.message : 'Error desconocido';
+      
+      console.log(`❌ Error procesando el siglo ${century}`);
+      throw error;
+    }
   }
+
+  async runCompleteFlow(): Promise<any> {
+    try {
+      this.status.isRunning = true;
+      this.status.currentStep = 'Ejecutando flujo completo...';
+      this.status.error = null;
+      
+      console.log('🔄 El monje inicia el ritual completo de los primeros 3 tomos...');
+      
+      const result = await this.playwrightService.runCompleteFlow();
+      
+      this.status.isRunning = false;
+      this.status.currentStep = 'Flujo completo completado';
+      
+      return result;
+    } catch (error) {
+      this.status.isRunning = false;
+      this.status.currentStep = 'Error en flujo completo';
+      this.status.error = error instanceof Error ? error.message : 'Error desconocido';
+      
+      console.log('❌ El ritual completo ha fallado');
+      throw error;
+    }
+  }
+
 } 
